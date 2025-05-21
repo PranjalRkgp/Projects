@@ -1,4 +1,4 @@
 streamlit==1.32.2
 langchain-groq==0.1.1
-langchain-core==0.1.23
+langchain-core==0.1.41  # or higher but <0.2.0
 python-dotenv==1.0.0
