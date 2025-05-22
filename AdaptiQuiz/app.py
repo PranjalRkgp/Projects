@@ -7,13 +7,9 @@ from datetime import datetime, timedelta
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 
-
-
-
 # Initialize LLM
-# llm = ChatGroq(groq_api_key=os.getenv('GROQ_API_KEY'), model_name="Llama3-70b-8192")
-llm = ChatGroq(groq_api_key=st.secrets["groq"]["api_key"], model_name="Llama3-70b-8192")
 
+llm = ChatGroq(groq_api_key=st.secrets["groq"]["api_key"], model_name="Llama3-70b-8192")
 
 def initialize_session_state():
     """Initialize or reset session state variables"""
@@ -113,11 +109,37 @@ def get_question(user_input_dict, asked_concepts, current_difficulty, question_s
         end_idx = response.content.rfind('}') + 1
         json_str = response.content[start_idx:end_idx]
         data = json.loads(json_str)
+        
+        # Validate the response has required fields
+        required_fields = ['question', 'choices', 'correct_answer']
+        for field in required_fields:
+            if field not in data:
+                st.warning(f"Generated question missing required field: {field}")
+                # Provide defaults for missing fields
+                if field == 'question':
+                    data['question'] = "Sample question (generated due to missing content)"
+                elif field == 'choices':
+                    data['choices'] = ["Option A", "Option B", "Option C", "Option D"]
+                elif field == 'correct_answer':
+                    data['correct_answer'] = data['choices'][0] if data.get('choices') else "Option A"
+        
+        # Ensure optional fields exist
+        if 'explanation' not in data:
+            data['explanation'] = "Explanation not provided"
+        if 'concept' not in data:
+            data['concept'] = "General"
+            
         return data
     except (json.JSONDecodeError, ValueError) as e:
         st.error(f"Failed to parse question: {e}")
-        st.error(f"Raw response: {response.content}")
-        return None
+        # Return a default question if parsing fails
+        return {
+            'question': "Sample question (generated due to error)",
+            'choices': ["Option A", "Option B", "Option C", "Option D"],
+            'correct_answer': "Option A",
+            'explanation': "This question was generated because the system encountered an error",
+            'concept': "Error Handling"
+        }
 
 def display_configuration_form():
     """Display the initial configuration form"""
@@ -232,7 +254,7 @@ def display_question_with_timer():
     
     # Display the question
     st.subheader("Question:")
-    st.markdown(f"**{question_data['question']}**")
+    st.markdown(f"**{question_data.get('question', 'Question text not available')}**")
     st.caption(f"Difficulty: {st.session_state.current_difficulty} | Style: {st.session_state.current_question_style}")
     
     # Start the timer
@@ -241,9 +263,15 @@ def display_question_with_timer():
     
     # Create form for answer submission
     answer_form = st.form(key="answer_form")
+    
+    # Ensure choices exist and are valid
+    choices = question_data.get('choices', ["Option A", "Option B", "Option C", "Option D"])
+    if not isinstance(choices, list) or len(choices) < 1:
+        choices = ["Option A", "Option B", "Option C", "Option D"]
+    
     user_choice = answer_form.radio(
         "Select your answer:",
-        question_data['choices'],
+        choices,
         index=None,
         key=f"question_{st.session_state.question_count}"
     )
@@ -260,7 +288,7 @@ def display_question_with_timer():
             st.session_state.timer_expired = True
             st.session_state.show_answer = True
             st.session_state.answers.append({
-                "question": question_data['question'],
+                "question": question_data.get('question', 'Unknown question'),
                 "user_answer": None,
                 "correct": False,
                 "time_taken": time_per_question,
@@ -278,10 +306,18 @@ def display_question_with_timer():
     if submitted and user_choice is not None:
         st.session_state.answer_submitted = True
         time_taken = time.time() - start_time
-        is_correct = user_choice == question_data['correct_answer']
+        
+        # Handle case where correct_answer might be missing
+        correct_answer = question_data.get('correct_answer')
+        if correct_answer is None or correct_answer not in choices:
+            st.warning("Correct answer may not exist in options. This will be marked as correct.")
+            is_correct = True
+            correct_answer = user_choice
+        else:
+            is_correct = user_choice == correct_answer
         
         st.session_state.answers.append({
-            "question": question_data['question'],
+            "question": question_data.get('question', 'Unknown question'),
             "user_answer": user_choice,
             "correct": is_correct,
             "time_taken": time_taken,
@@ -335,13 +371,22 @@ def display_quiz():
                 st.success(f"✅ Correct! ")
             else:
                 st.error(f"❌ Incorrect! ")
-                st.error(f"The correct answer is: {question_data['correct_answer']}")
+                correct_answer = question_data.get('correct_answer', 'Correct answer not specified')
+                st.error(f"The correct answer is: {correct_answer}")
         else:
             st.warning("⏰ Time's up! Question not attempted.")
-            st.info(f"The correct answer is: {question_data['correct_answer']}")
+            correct_answer = question_data.get('correct_answer', 'Correct answer not specified')
+            st.info(f"The correct answer is: {correct_answer}")
         
-        st.markdown(f"**Explanation:** {question_data['explanation']}")
-        st.markdown(f"**Concept tested:** {question_data.get('concept', 'Unknown')}")
+        # Display explanation if it exists
+        explanation = question_data.get('explanation')
+        if explanation:
+            st.markdown(f"**Explanation:** {explanation}")
+        
+        # Display concept if it exists
+        concept = question_data.get('concept')
+        if concept:
+            st.markdown(f"**Concept tested:** {concept}")
         
         total_questions = st.session_state.user_inputs["Testing Structure"]["Question Count"]
         if st.session_state.question_count < total_questions - 1:
