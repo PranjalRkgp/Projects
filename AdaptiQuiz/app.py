@@ -6,17 +6,13 @@ import random
 from datetime import datetime, timedelta
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
-# from dotenv import load_dotenv
 
-# Load environment variables
-# load_dotenv()
 
-# Set API key
-# os.environ['GROQ_API_KEY'] = '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'
+
 
 # Initialize LLM
 # llm = ChatGroq(groq_api_key=os.getenv('GROQ_API_KEY'), model_name="Llama3-70b-8192")
-llm = ChatGroq(groq_api_key='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', model_name="Llama3-70b-8192")
+llm = ChatGroq(groq_api_key=st.secrets["groq"]["api_key"], model_name="Llama3-70b-8192")
 
 
 def initialize_session_state():
