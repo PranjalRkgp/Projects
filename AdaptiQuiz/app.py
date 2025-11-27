@@ -19,7 +19,7 @@ st.set_page_config(page_title="AI Skill Assessment", page_icon="🧪", layout="w
 try:
     llm = ChatGroq(
         groq_api_key=st.secrets["groq"]["api_key"], 
-        model_name="llama3-70b-8192",
+        model_name="groq/compound",
         temperature=0.7
     )
 except Exception as e:
