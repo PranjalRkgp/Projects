@@ -9,7 +9,9 @@ from langchain_core.prompts import ChatPromptTemplate
 
 # Initialize LLM
 
-llm = ChatGroq(groq_api_key=st.secrets["groq"]["api_key"], model_name="Llama3-70b-8192")
+llm = ChatGroq(groq_api_key=st.secrets["groq"]["api_key"], model_name="groq/compound")
+# llm = ChatGroq(groq_api_key=st.secrets["groq"]["api_key"], model_name="Llama3-70b-8192")
+# groq/compound
 
 def initialize_session_state():
     """Initialize or reset session state variables"""
