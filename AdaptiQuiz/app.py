@@ -26,7 +26,7 @@ except Exception as e:
     st.error("Error initializing Groq. Please check your .streamlit/secrets.toml file.")
     st.stop()
 
-# --- 2. DATA MODELS (CV Point: JSON-Schema / Automated Validation) ---
+
 
 class QuizQuestion(BaseModel):
     """
@@ -85,12 +85,7 @@ def format_time(seconds):
     return str(timedelta(seconds=int(seconds)))[2:]
 
 def update_difficulty(is_correct):
-    """
-    CV Point: Adaptive Evaluation & Dynamic Progression
-    Logic: 
-    - 2 Consecutive Correct -> Level Up
-    - 1 Incorrect -> Reset Streak (and optionally level down)
-    """
+   
     if not st.session_state.user_inputs["Testing Structure"]["Adaptive Progression"]:
         return
 
@@ -112,9 +107,7 @@ def update_difficulty(is_correct):
             st.toast(f"📉 Adjusting pace. Difficulty set to: {st.session_state.current_difficulty}")
 
 def get_question(user_input_dict, asked_concepts, current_difficulty, question_style):
-    """
-    CV Point: COVe, JSON-Schema Prompting, Contextual Deduplication, Safe API-Call
-    """
+   
     
     # 1. Setup Parser (Automated Validation)
     parser = JsonOutputParser(pydantic_object=QuizQuestion)
@@ -136,6 +129,8 @@ def get_question(user_input_dict, asked_concepts, current_difficulty, question_s
     1. Do NOT ask about these previously covered concepts: {asked_concepts}
     2. Ensure the 'correct_answer' matches one of the 'choices' exactly.
     3. Return ONLY valid JSON.
+    4. There should Not be duplicate choices.
+    
     
     {format_instructions}
     """
@@ -145,9 +140,6 @@ def get_question(user_input_dict, asked_concepts, current_difficulty, question_s
     # 4. Create Chain
     chain = prompt | llm | parser
 
-    # 5. Resilience Loop (CV Point: Safe API-call rate limit hit)
-    max_retries = 3
-    base_delay = 1.5 # seconds
     
     for attempt in range(max_retries):
         try:
